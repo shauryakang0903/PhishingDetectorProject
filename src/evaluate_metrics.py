@@ -1,4 +1,4 @@
-# src/evaluate_metrics.py
+
 
 import sys, os, pickle
 import pandas as pd
@@ -15,27 +15,27 @@ from sklearn.metrics import (
     precision_recall_curve
 )
 
-# 1. Ensure src is importable
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# 2. Import your preprocessing utilities
+
 from preprocess import clean_text, URL_REGEX, SUSPICIOUS_KEYWORDS
 
-# 3. Paths
+
 ensemble_path = r"C:\Users\shaur\PhishingDetectorProject\models\weighted_nb_ensemble.pkl"
 external_csv  = r"C:\Users\shaur\PhishingDetectorProject\dataset\external_emails.csv"
 
-# 4. Load the ensemble
+
 with open(ensemble_path, "rb") as f:
     obj = pickle.load(f)
 tfidf, mnb, gnb, alpha = obj["tfidf"], obj["mnb"], obj["gnb"], obj["alpha"]
 
 print(f"Loaded ensemble with α = {alpha}\n")
 
-# 5. Load external data
+
 df_ext = pd.read_csv(external_csv)
 
-# 6. Preprocess text and extract numeric features
+
 df_ext["clean_text"] = df_ext["email_text"].apply(clean_text)
 df_ext["word_count"] = df_ext["clean_text"].str.split().apply(len)
 df_ext["url_count"] = df_ext["email_text"].apply(lambda t: len(URL_REGEX.findall(str(t))))
@@ -43,18 +43,18 @@ df_ext["suspicious_kw_count"] = df_ext["clean_text"].apply(
     lambda s: sum(s.count(k) for k in SUSPICIOUS_KEYWORDS)
 )
 
-# 7. Build feature matrices
+
 X_text = tfidf.transform(df_ext["clean_text"])
 X_num  = df_ext[["word_count","url_count","suspicious_kw_count"]].values
 
-# 8. Get predictions and probabilities
+
 p_text = mnb.predict_proba(X_text)[:,1]
 p_num  = gnb.predict_proba(X_num)[:,1]
 p_ens  = alpha * p_text + (1 - alpha) * p_num
 y_true = df_ext["label"].values
 y_pred = (p_ens >= 0.5).astype(int)
 
-# 9. Compute core metrics
+
 metrics = {
     "Accuracy": accuracy_score(y_true, y_pred),
     "Precision": precision_score(y_true, y_pred),
@@ -68,13 +68,13 @@ for name, value in metrics.items():
     print(f"{name:10s}: {value:.4f}")
 print()
 
-# 10. Confusion Matrix
+
 cm = confusion_matrix(y_true, y_pred)
 print("=== Confusion Matrix ===")
 print(cm)
 print()
 
-# 11. Plot Confusion Matrix
+
 plt.figure()
 plt.imshow(cm, interpolation='nearest')
 plt.title("Confusion Matrix")
@@ -89,7 +89,7 @@ for i in range(2):
 plt.tight_layout()
 plt.show()
 
-# 12. ROC Curve
+
 fpr, tpr, _ = roc_curve(y_true, p_ens)
 plt.figure()
 plt.plot(fpr, tpr)
@@ -99,7 +99,7 @@ plt.ylabel("True Positive Rate")
 plt.tight_layout()
 plt.show()
 
-# 13. Precision-Recall Curve
+
 precision, recall, _ = precision_recall_curve(y_true, p_ens)
 plt.figure()
 plt.plot(recall, precision)
